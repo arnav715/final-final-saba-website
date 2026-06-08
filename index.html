@@ -496,6 +496,32 @@ em.fr{ font-style:italic; font-family:var(--serif); }
 .page.active { display: block; }
 
 /* ============================================================
+   MEMBERS-ONLY GATE
+   ============================================================ */
+.members-gate, .members-content{ position:relative; z-index:2; width:100%; }
+.gate-form{ margin-top:2.4rem; max-width:540px; opacity:1; }
+.gate-field{ display:flex; gap:.8rem; flex-wrap:wrap; align-items:center; }
+.gate-input{
+  flex:1 1 240px; min-width:0;
+  font-family:var(--sans); font-size:1rem; color:#fff; letter-spacing:.02em;
+  background:rgba(255,255,255,.06);
+  border:1.5px solid rgba(217,197,236,.35); border-radius:100px;
+  padding:1.05rem 1.5rem; outline:none;
+  transition:border-color .3s var(--ease), background .3s var(--ease);
+}
+.gate-input::placeholder{ color:rgba(217,197,236,.55); }
+.gate-input:focus{ border-color:var(--lilac); background:rgba(255,255,255,.1); }
+.gate-error{
+  margin-top:1.1rem; font-family:var(--mono); font-size:.74rem; letter-spacing:.08em;
+  text-transform:uppercase; color:#f3a6bd;
+  opacity:0; transform:translateY(-4px); transition:opacity .3s, transform .3s;
+  min-height:1em;
+}
+.gate-error.show{ opacity:1; transform:none; }
+.members-content .hero-sub{ opacity:1; transform:none; }
+.lock-ico{ width:15px; height:15px; vertical-align:-2px; margin-right:.55rem; }
+
+/* ============================================================
    RESPONSIVE LAYER — desktop / tablet / phone
    ============================================================ */
 img, svg, video { max-width:100%; height:auto; }
@@ -590,6 +616,7 @@ img, svg, video { max-width:100%; height:auto; }
     <a href="about.html">About</a>
     <a href="people.html">People</a>
     <a href="recruitment.html">Recruitment</a>
+    <a href="members.html">Members Only</a>
     <a class="nav-cta" href="recruitment.html">Join Us</a>
   </nav>
   <button class="burger" aria-label="Menu"><span></span><span></span><span></span></button>
@@ -1146,6 +1173,48 @@ img, svg, video { max-width:100%; height:auto; }
 </section>
 </div>
 
+<div id="page-members" class="page">
+<!-- MEMBERS GATE -->
+<section class="hero phero" data-spot>
+  <div class="spot"></div>
+  <div class="rings"></div>
+  <div class="hero-inner">
+    <p class="hero-eyebrow"><span>Members Only</span></p>
+
+    <!-- LOCKED STATE -->
+    <div id="members-gate" class="members-gate">
+      <h1>
+        <span class="ln"><span>Members</span></span>
+        <span class="ln"><span><em class="fr">portal.</em></span></span>
+      </h1>
+      <p class="hero-sub">This area is reserved for SABA members. Enter the access password to continue.</p>
+      <div class="gate-form">
+        <div class="gate-field">
+          <input type="password" id="members-pass" class="gate-input" placeholder="Access password" autocomplete="off" spellcheck="false" aria-label="Access password">
+          <button class="btn btn-fill" id="members-submit" type="button">
+            <svg class="lock-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            Enter <span class="arr">&rarr;</span>
+          </button>
+        </div>
+        <p class="gate-error" id="members-error">Incorrect password. Please try again.</p>
+      </div>
+    </div>
+
+    <!-- UNLOCKED STATE -->
+    <div id="members-content" class="members-content" hidden>
+      <h1>
+        <span class="ln"><span>Welcome,</span></span>
+        <span class="ln"><span><em class="fr">members.</em></span></span>
+      </h1>
+      <p class="hero-sub">Alumni contact page and more resources coming soon.</p>
+      <div class="hero-row">
+        <a class="btn btn-ghost on-dark" href="index.html">Back to Home <span class="arr">&rarr;</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
 <footer class="footer">
   <div class="wrap">
     <div class="top">
@@ -1166,6 +1235,7 @@ img, svg, video { max-width:100%; height:auto; }
         <a class="fl" href="about.html">About</a>
         <a class="fl" href="people.html">People</a>
         <a class="fl" href="recruitment.html">Recruitment</a>
+        <a class="fl" href="members.html">Members Only</a>
       </div>
       <div>
         <p class="fh">Connect</p>
@@ -1474,12 +1544,14 @@ function buildMarquee() {
     'about': 'page-about',
     'people': 'page-people',
     'recruitment': 'page-recruitment',
+    'members': 'page-members',
   };
   var navLinks = {
     'home': 'index.html',
     'about': 'about.html',
     'people': 'people.html',
     'recruitment': 'recruitment.html',
+    'members': 'members.html',
   };
 
   var slideTimer = null;
@@ -1647,6 +1719,57 @@ function buildMarquee() {
   window.addEventListener('popstate', function() { navigate(getKey()); });
   window.addEventListener('hashchange', function() { navigate(getKey()); });
   navigate(getKey());
+})();
+</script>
+
+<script>
+/* ---- Members-only access gate ---- */
+(function() {
+  var PASS = 'SabaSaba@123';
+  var KEY = 'saba_members_unlocked';
+
+  function el(id) { return document.getElementById(id); }
+  function isUnlocked() {
+    try { return sessionStorage.getItem(KEY) === '1'; } catch (e) { return false; }
+  }
+  function showContent() {
+    var gate = el('members-gate'), content = el('members-content');
+    if (!gate || !content) return;
+    gate.hidden = true;
+    content.hidden = false;
+  }
+  function showGate() {
+    var gate = el('members-gate'), content = el('members-content');
+    if (!gate || !content) return;
+    gate.hidden = false;
+    content.hidden = true;
+  }
+  function attempt() {
+    var input = el('members-pass'), err = el('members-error');
+    if (!input) return;
+    if (input.value === PASS) {
+      try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+      if (err) err.classList.remove('show');
+      showContent();
+    } else {
+      if (err) err.classList.add('show');
+      input.value = '';
+      input.focus();
+    }
+  }
+  function restore() {
+    if (isUnlocked()) showContent(); else showGate();
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    var submit = el('members-submit'), input = el('members-pass');
+    if (submit) submit.addEventListener('click', attempt);
+    if (input) input.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); attempt(); }
+    });
+    restore();
+  });
+  window.addEventListener('hashchange', restore);
 })();
 </script>
 
